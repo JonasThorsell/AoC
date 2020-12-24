@@ -43,6 +43,4 @@ for l in sys.stdin:
     else:
         t[c] = True
 
-print(t)
 print(list(t.values()).count(True))
-
