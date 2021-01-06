@@ -1,0 +1,183 @@
+# Copyright (c) 2021 Jonas Thorsell
+import sys
+
+mem = {}
+reg = [0] * 8
+stack = []
+ip = 0
+tin = ""
+
+def load(path):
+    with open(path, "rb") as f:
+        word = f.read(2)
+        p = 0
+        while word:
+            v = int.from_bytes(word, byteorder='little', signed=False)
+            mem[p] = v
+            p += 1
+            word = f.read(2)
+
+def getm(p):
+    a = mem[p]
+    if a <= 32767:
+        return a
+    elif a <= 32775:
+        r = a - 32768
+        return reg[r]
+    else:
+        print('ERROR! Invalid memory {a}')
+
+def setr(p, v):
+    a = mem[p]
+    if 32768 <= a <= 32775:
+        r = a - 32768
+        reg[r] = v
+    else:
+        print('ERROR! Not a register {a}')
+
+def step():
+    global ip
+    global tin
+    op = mem[ip]
+    ip += 1
+    # halt: 0
+    #   stop execution and terminate the program
+    if (op == 0):
+        print(f'{ip-1} HALT')
+        return False
+    # set: 1 a b
+    #   set register <a> to the value of <b>
+    elif (op == 1):
+        setr(ip, getm(ip+1))
+        ip += 2
+    # push: 2 a
+    #   push <a> onto the stack
+    elif (op == 2):
+        stack.append(getm(ip))
+        ip += 1
+    # pop: 3 a
+    #   remove the top element from the stack and write it into <a>; empty stack = error
+    elif (op == 3):
+        if stack:
+            v = stack.pop()
+            setr(ip, v)
+        else:
+            print('ERROR! Stack empty')
+            return False
+        ip += 1
+    # eq: 4 a b c
+    #   set <a> to 1 if <b> is equal to <c>; set it to 0 otherwise
+    elif (op == 4):
+        setr(ip, 1 if getm(ip+1) == getm(ip+2) else 0)
+        ip += 3
+    # gt: 5 a b c
+    #   set <a> to 1 if <b> is greater than <c>; set it to 0 otherwise
+    elif (op == 5):
+        setr(ip, 1 if getm(ip+1) > getm(ip+2) else 0)
+        ip += 3
+    # jmp: 6 a
+    #   jump to <a>
+    elif (op == 6):
+        ip = getm(ip)
+    # jt: 7 a b
+    #   if <a> is nonzero, jump to <b>
+    elif (op == 7):
+        if getm(ip):
+            ip = getm(ip+1)
+        else:
+            ip += 2
+    # jf: 8 a b
+    #   if <a> is zero, jump to <b>
+    elif (op == 8):
+        if not getm(ip):
+            ip = getm(ip+1)
+        else:
+            ip += 2
+    # add: 9 a b c
+    #   assign into <a> the sum of <b> and <c> (modulo 32768)
+    elif (op == 9):
+        setr(ip, (getm(ip+1) + getm(ip+2)) % 32768)
+        ip += 3
+    # mult: 10 a b c
+    #   store into <a> the product of <b> and <c> (modulo 32768)
+    elif (op == 10):
+        setr(ip, (getm(ip+1) * getm(ip+2)) % 32768)
+        ip += 3
+    # mod: 11 a b c
+    #   store into <a> the remainder of <b> divided by <c>
+    elif (op == 11):
+        setr(ip, getm(ip+1) % getm(ip+2))
+        ip += 3
+    # and: 12 a b c
+    #   stores into <a> the bitwise and of <b> and <c>
+    elif (op == 12):
+        setr(ip, getm(ip+1) & getm(ip+2))
+        ip += 3
+    # or: 13 a b c
+    #   stores into <a> the bitwise or of <b> and <c>
+    elif (op == 13):
+        setr(ip, getm(ip+1) | getm(ip+2))
+        ip += 3
+    # not: 14 a b
+    #   stores 15-bit bitwise inverse of <b> in <a>
+    elif (op == 14):
+        setr(ip, (~getm(ip+1)) & 0x7FFF)
+        ip += 2
+    # rmem: 15 a b
+    #   read memory at address <b> and write it to <a>
+    elif (op == 15):
+        setr(ip, mem[getm(ip+1)])
+        ip += 2
+    # wmem: 16 a b
+    #   write the value from <b> into memory at address <a>
+    elif (op == 16):
+        mem[getm(ip)] = getm(ip+1)
+        ip += 2
+    # call: 17 a
+    #   write the address of the next instruction to the stack and jump to <a>
+    elif (op == 17):
+        stack.append(ip+1)
+        ip = getm(ip)
+    # ret: 18
+    #   remove the top element from the stack and jump to it; empty stack = halt
+    elif (op == 18):
+        if stack:
+            ip = stack.pop()
+        else:
+            print('ERROR! Stack empty')
+            return False
+    # out: 19 a
+    #   write the character represented by ascii code <a> to the terminal
+    elif (op == 19): # OUT
+        a = chr(getm(ip))
+        ip += 1
+        print(a, end='')
+    # in: 20 a
+    #   read a character from the terminal and write its ascii code to <a>;
+    #   it can be assumed that once input starts, it will continue until a
+    #   newline is encountered; this means that you can safely read whole lines
+    #   from the keyboard and trust that they will be fully read
+    elif (op == 20):
+        if not tin:
+            tin = input ("> ")
+            tin += "\n" 
+        setr(ip, ord(tin[0]))
+        tin = tin[1:]
+        ip += 1
+    # noop: 21
+    #   no operation
+    elif (op == 21):
+        return True
+    else:
+        print(f'{ip-1} Unsupported opcode {op}')
+        return False
+    return True
+
+
+load(sys.argv[1])
+
+cycle = 0
+while (step()):
+    cycle += 1
+
+print(f'Done after {cycle} cycles')
