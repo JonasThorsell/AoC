@@ -23,6 +23,8 @@ def getm(p):
         return a
     elif a <= 32775:
         r = a - 32768
+        if (r == 7):
+            print(f'@ Reading R7 at {ip-1} ({reg[r]})')
         return reg[r]
     else:
         print('ERROR! Invalid memory {a}')
@@ -31,9 +33,52 @@ def setr(p, v):
     a = mem[p]
     if 32768 <= a <= 32775:
         r = a - 32768
+        if (r == 7):
+            print(f'@ Writing R7 at {ip-1} ({reg[r]} -> {v})')
         reg[r] = v
     else:
         print('ERROR! Not a register {a}')
+
+def m2s(a):
+    op = ["halt","set","push","pop","eq","gt","jmp","jt","jf","add","mult","mod","and","or","not","rmem","wmem","call","ret","out","in","noop"]
+    if a <= 21:
+        return f"{a} {op[a]}"
+    elif a <= 32767:
+        return f"{a}"
+    elif a <= 32775:
+        r = a - 32768
+        return f"R{r} ({reg[r]})"
+    else:
+        return "INV"
+
+def dbgcmd(s):
+    args = s[1:].strip().split(' ')
+    if args[0] == 'q':
+        return False
+    elif args[0] == 'p':
+        print(f'IP: {ip+1} R: {reg} S: {stack}')
+    if args[0] == 'm':
+        a = int(args[1])
+        for i in range(1 if len(args) < 3 else int(args[2])):
+            print(f'{a:5}: {m2s(mem[a])}')
+            a += 1
+    if args[0] == 'r':
+        r = int(args[1])
+        if len(args) < 3:
+            print(f"R{r} {reg[r]}")
+        else:
+            v = int(args[2])
+            print(f"R{r} {reg[r]} -> {v}")
+            reg[r] = v
+    if args[0] == 'w':
+        a = int(args[1])
+        if len(args) < 3:
+            print(f"{a:5}: {m2s(mem[a])}")
+        else:
+            v = int(args[2])
+            print(f"{a:5}: {m2s(mem[a])} -> {m2s(v)}")
+            mem[a] = v
+    return True
 
 def step():
     global ip
@@ -160,7 +205,11 @@ def step():
     elif (op == 20):
         if not tin:
             tin = input ("> ")
-            tin += "\n" 
+            if (tin and tin[0] == '!'):
+                if not dbgcmd(tin):
+                    return False
+                tin = ""
+            tin += "\n"
         setr(ip, ord(tin[0]))
         tin = tin[1:]
         ip += 1
