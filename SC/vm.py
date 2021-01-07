@@ -6,6 +6,7 @@ reg = [0] * 8
 stack = []
 ip = 0
 tin = ""
+obs = []
 
 def load(path):
     with open(path, "rb") as f:
@@ -23,8 +24,8 @@ def getm(p):
         return a
     elif a <= 32775:
         r = a - 32768
-        if (r == 7):
-            print(f'@ Reading R7 at {ip-1} ({reg[r]})')
+        if r in obs:
+            print(f'@ Reading R{r} at {ip-1} ({reg[r]})')
         return reg[r]
     else:
         print('ERROR! Invalid memory {a}')
@@ -33,8 +34,8 @@ def setr(p, v):
     a = mem[p]
     if 32768 <= a <= 32775:
         r = a - 32768
-        if (r == 7):
-            print(f'@ Writing R7 at {ip-1} ({reg[r]} -> {v})')
+        if r in obs:
+            print(f'@ Writing R{r} at {ip-1} ({reg[r]} -> {v})')
         reg[r] = v
     else:
         print('ERROR! Not a register {a}')
@@ -53,15 +54,19 @@ def m2s(a):
 
 def dbgcmd(s):
     args = s[1:].strip().split(' ')
+    # q: Quit
     if args[0] == 'q':
         return False
+    # p: Print status
     elif args[0] == 'p':
         print(f'IP: {ip+1} R: {reg} S: {stack}')
+    # m address [length] : Print memory
     if args[0] == 'm':
         a = int(args[1])
-        for i in range(1 if len(args) < 3 else int(args[2])):
+        for _ in range(1 if len(args) < 3 else int(args[2])):
             print(f'{a:5}: {m2s(mem[a])}')
             a += 1
+    # r register [new value] : Read or set register value
     if args[0] == 'r':
         r = int(args[1])
         if len(args) < 3:
@@ -70,6 +75,7 @@ def dbgcmd(s):
             v = int(args[2])
             print(f"R{r} {reg[r]} -> {v}")
             reg[r] = v
+    # w address [new value] : Read or write memory
     if args[0] == 'w':
         a = int(args[1])
         if len(args) < 3:
@@ -78,6 +84,13 @@ def dbgcmd(s):
             v = int(args[2])
             print(f"{a:5}: {m2s(mem[a])} -> {m2s(v)}")
             mem[a] = v
+    # o register : Observe register for access
+    if args[0] == 'o':
+        r = int(args[1])
+        if r in obs:
+            obs.remove(r)
+        else:
+            obs.append(r)
     return True
 
 def step():
@@ -204,12 +217,15 @@ def step():
     #   from the keyboard and trust that they will be fully read
     elif (op == 20):
         if not tin:
+            # Ask for input if buffer is empty
             tin = input ("> ")
-            if (tin and tin[0] == '!'):
-                if not dbgcmd(tin):
-                    return False
-                tin = ""
-            tin += "\n"
+            tin += '\n'
+        if (tin[0] == '!'):
+            # '!' used as escape for debug command
+            nl = tin.find('\n')
+            if not dbgcmd(tin[:nl]):
+                return False
+            tin = tin[nl:]
         setr(ip, ord(tin[0]))
         tin = tin[1:]
         ip += 1
@@ -222,8 +238,15 @@ def step():
         return False
     return True
 
+if len(sys.argv) < 2:
+    print(f'Usage: {sys.argv[0]} <binary> [Input]')
+    quit()
 
 load(sys.argv[1])
+
+if len(sys.argv) >= 3:
+    with open(sys.argv[2], "r") as f:
+        tin = f.read()
 
 cycle = 0
 while (step()):
