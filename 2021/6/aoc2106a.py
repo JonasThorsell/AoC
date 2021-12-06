@@ -1,6 +1,5 @@
 # Copyright (c) 2021 Jonas Thorsell
 import sys
-from collections import defaultdict
 
 tl = [0] * 9
 for t in [int(x) for x in sys.stdin.readline().split(',')]:
