@@ -1,5 +1,4 @@
 # Copyright (c) 2021 Jonas Thorsell
-# 241930482683 too low
 import sys
 import numpy as np
 
@@ -42,7 +41,7 @@ def decode(s, ind=0):
                 values.append(value)
                 i += si
                 j += si
-        elif lengthtype == 1:
+        elif lengthtype == 1: # number of sub-packets
             subs = int(s[i:i+11],2)
             i+=11
             j = 0
@@ -93,5 +92,3 @@ for l in sys.stdin:
     print(f'bits {ti}, used {vi}, unused {ti-vi}')
     print(f'>>P1 Version sum : {gversum}')
     print(f'>>P2 Exp value   : {value}')
-    i=0
-
