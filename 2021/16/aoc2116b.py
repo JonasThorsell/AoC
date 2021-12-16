@@ -10,9 +10,10 @@ def decode(s, ind=0):
     i = 0
     value = 0
     version = int(s[i:i+3],2)
+    i += 3
     gversum += version
-    typeid = int(s[i+3:i+6],2)
-    i += 6
+    typeid = int(s[i:i+3],2)
+    i += 3
     if typeid == 4: # literal value
         literals = ''
         literal = 0
@@ -65,12 +66,15 @@ def decode(s, ind=0):
             value = np.amax(values)
             print(f'{"."*ind}PKG v{version} {subs}{"p" if lengthtype == 1 else "b"} op max {values} -> {value}')
         elif typeid == 5: # greater than
+            assert len(values) == 2
             value = 1 if values[0] > values[1] else 0
             print(f'{"."*ind}PKG v{version} {subs}{"p" if lengthtype == 1 else "b"} op greater {values} -> {value}')
         elif typeid == 6: # less than
+            assert len(values) == 2
             value = 1 if values[0] < values[1] else 0
             print(f'{"."*ind}PKG v{version} {subs}{"p" if lengthtype == 1 else "b"} op less {values} -> {value}')
         elif typeid == 7: # equal
+            assert len(values) == 2
             value = 1 if values[0] == values[1] else 0
             print(f'{"."*ind}PKG v{version} {subs}{"p" if lengthtype == 1 else "b"} op equal {values} -> {value}')
         else:
@@ -87,6 +91,7 @@ for l in sys.stdin:
     ti = len(bits)
     value, vi = decode(bits)
     print(f'bits {ti}, used {vi}, unused {ti-vi}')
-    print(value)
+    print(f'>>P1 Version sum : {gversum}')
+    print(f'>>P2 Exp value   : {value}')
     i=0
 
