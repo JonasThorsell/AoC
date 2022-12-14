@@ -33,16 +33,13 @@ def addsand(m,x,y,floor=False):
     return False
 
 rock = []
-minx,maxx,miny,maxy=999,0,999,0
+maxy = 0
 for l in sys.stdin:
     sl = l.strip().split(' -> ')
     rock.append([])
     for s in sl:
         x,y = [int(n) for n in s.split(',')]
         rock[-1].append((x,y))
-        minx = min(minx,x)
-        maxx = max(maxx,x)
-        miny = min(miny,y)
         maxy = max(maxy,y)
 
 w = 1000
