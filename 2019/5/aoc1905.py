@@ -47,7 +47,55 @@ def run(m):
                 p1 = m[p1]
             print(p1)
             ip += 2
+
+        # Jump if True
+        elif op == 5:
+            p1,p2 = m[ip+1:ip+3]
+            if not m1:
+                p1 = m[p1]
+            if not m2:
+                p2 = m[p2]
+            if p1:
+                ip = p2
+            else:
+                ip += 3
+
+        # Jump if False
+        elif op == 6:
+            p1,p2 = m[ip+1:ip+3]
+            if not m1:
+                p1 = m[p1]
+            if not m2:
+                p2 = m[p2]
+            if not p1:
+                ip = p2
+            else:
+                ip += 3
         
+        # Less than
+        elif op == 7:
+            p1,p2,p3 = m[ip+1:ip+4]
+            if not m1:
+                p1 = m[p1]
+            if not m2:
+                p2 = m[p2]
+            if m3:
+                raise NotImplementedError('Intcode: Invalid Mode ' + str(m[ip]) + ' @ ' + str(ip))
+            m[p3] = p1 < p2
+            ip += 4
+
+        # Equals
+        elif op == 8:
+            p1,p2,p3 = m[ip+1:ip+4]
+            if not m1:
+                p1 = m[p1]
+            if not m2:
+                p2 = m[p2]
+            if m3:
+                raise NotImplementedError('Intcode: Invalid Mode ' + str(m[ip]) + ' @ ' + str(ip))
+            m[p3] = p1 == p2
+            ip += 4
+
         else:
             raise NotImplementedError('Intcode: Invalid Opcode ' + str(m[ip]) + ' @ ' + str(ip))
 
